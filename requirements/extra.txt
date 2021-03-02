@@ -1,3 +1,2 @@
-parso==0.8.1  # extra=parso
-docstring-parser==0.7.3  # extra=parso
-Jinja2>=2,<3  # extra=parso
+parso>=0.8,<0.9  # extra=parso
+docstring-parser>=0.7,<0.8  # extra=parso

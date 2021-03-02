@@ -9,6 +9,9 @@ def resolve(filename):
     return os.path.join(os.path.dirname(__file__), filename)
 
 
+with open(resolve("README.md"), encoding="utf-8") as f:
+    long_description = f.read()
+
 with open(resolve("yaarg/__init__.py")) as f:
     version_pattern = re.compile(r'__version__\s*=\s*[\'"](.+?)[\'"]')
     version_match = re.search(version_pattern, f.read())
@@ -36,6 +39,8 @@ setup(
     url="https://github.com/g6123/mkdocs-yaarg-plugin",
     license="MIT",
     description="Yet Another API Reference Generator plugin for MKDocs.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="g6123",
     author_email="gg6123@naver.com",
     packages=find_packages(exclude=("tests",)),
