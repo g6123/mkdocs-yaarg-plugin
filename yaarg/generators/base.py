@@ -38,7 +38,7 @@ class BaseGenerator(ABC):
         self, filepath: Path, symbol: Optional[str], options: dict
     ) -> Iterable[str]:
         """
-        Reads the source code and generates markdown blocks.
+        Reads the source code and generates markdown lines.
 
         Args:
             filepath (Path): Path to the source code
@@ -46,14 +46,12 @@ class BaseGenerator(ABC):
             options (dict): Generator options. See also `validate_options()`.
 
         Returns:
-            Iterable[str]: Markdown blocks
+            Iterable[str]: Markdown lines
         """
         pass
 
 
-def markdown_heading(
-    text: Optional[str], level: int = 1, append_newline: bool = True
-) -> str:
+def markdown_heading(text: Optional[str], level: int = 1) -> str:
     """
     Creates markdown heading block.
     """
@@ -62,22 +60,17 @@ def markdown_heading(
 
     text = ("#" * level) + " " + text
     text = text.strip()
-    if append_newline:
-        text += "\n"
     return text
 
 
-def markdown_paragraph(text: Optional[str], append_newline: bool = True) -> str:
+def markdown_paragraph(text: Optional[str]) -> str:
     """
     Creates markdown paragraph block(s).
     """
     if text is None:
         return ""
 
-    text = text.strip()
-    if append_newline:
-        text += "\n"
-    return text
+    return text.strip()
 
 
 class markdown_block:
@@ -107,17 +100,14 @@ class markdown_block:
         self.write(line)
         self.lines.append("")
 
-    def build(self, strip=True) -> str:
+    def build(self) -> str:
         """
         Builds final markdown block.
 
         Returns:
             str: Markdown block contents
         """
-        result = "\n".join(self.lines)
-        if strip:
-            result = result.strip()
-        return result
+        return "\n".join(self.lines).strip("\r\n")
 
     def __enter__(self):
         return self

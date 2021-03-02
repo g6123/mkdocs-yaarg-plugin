@@ -4,13 +4,14 @@ from collections import OrderedDict
 from dataclasses import dataclass, replace
 from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Generator, Optional, Set, Type, cast
+from typing import Any, Dict, Generator, List, Optional, Set, Type, cast
 
 from docstring_parser import parse as parse_docstring
 from docstring_parser.common import DocstringParam
 from parso.grammar import load_grammar
 from parso.python.tree import (
     Class,
+    Decorator,
     Function,
     Module,
     Name,
@@ -177,14 +178,9 @@ class ParsoGenerator(BaseGenerator):
         if doc:
             param_docs.update([(param.arg_name, param) for param in doc.params])
 
-        param_string = (
-            re.sub(
-                r"(^\s+|\r?\n|\s+$)",
-                "",
-                "".join(param_node.get_code() for param_node in param_nodes.values()),
-            )
-            .rstrip(",")
-            .strip()
+        param_string = ", ".join(
+            param_node.get_code(include_prefix=False, include_comma=False)
+            for param_node in param_nodes.values()
         )
 
         yield markdown_heading(
@@ -198,6 +194,16 @@ class ParsoGenerator(BaseGenerator):
 
         if doc:
             yield markdown_paragraph(doc.short_description)
+
+        decorator_nodes: List[Decorator] = func_node.get_decorators()
+        if decorator_nodes:
+            yield markdown_heading("Decorators", level=context.depth + 1)
+            with markdown_block() as block:
+                block.writeln("```python")
+                for decorator_node in decorator_nodes:
+                    block.writeln(decorator_node.get_code(include_prefix=False).strip())
+                block.writeln("```")
+                yield block.build()
 
         if param_nodes or param_docs:
             yield markdown_heading("Arguments", level=context.depth + 1)
