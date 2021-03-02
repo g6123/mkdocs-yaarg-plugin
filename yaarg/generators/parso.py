@@ -1,10 +1,13 @@
 import os
 import re
+from collections import OrderedDict
 from dataclasses import dataclass, replace
+from itertools import chain
 from pathlib import Path
-from typing import Any, Dict, Generator, Optional, OrderedDict, Type, cast
+from typing import Any, Dict, Generator, Optional, Set, Type, cast
 
 from docstring_parser import parse as parse_docstring
+from docstring_parser.common import DocstringParam
 from parso.grammar import load_grammar
 from parso.python.tree import (
     Class,
@@ -157,29 +160,38 @@ class ParsoGenerator(BaseGenerator):
             is_static = True
             prefix = ""
 
-        param_nodes: OrderedDict[str, Param] = OrderedDict(
-            [
-                (param_node.name.value, param_node)
-                for idx, param_node in enumerate(func_node.get_params())
-                if not (idx == 0 and param_node.name.value in ("self", "cls"))
-            ]
-        )
-
         doc_node = cast(Optional[String], func_node.get_doc_node())
         if doc_node:
             doc = parse_docstring(doc_node._get_payload())
-            param_docs = {param_doc.arg_name: param_doc for param_doc in doc.params}
         else:
             doc = None
-            param_docs = {}
+
+        param_nodes: OrderedDict[str, Param] = OrderedDict()
+        for idx, param_node in enumerate(func_node.get_params()):
+            param_name = param_node.name.value
+            if idx == 0 and param_name in ("self", "cls"):
+                continue
+            param_nodes[param_name] = param_node
+
+        param_docs: OrderedDict[str, DocstringParam] = OrderedDict()
+        if doc:
+            param_docs.update([(param.arg_name, param) for param in doc.params])
+
+        param_string = (
+            re.sub(
+                r"(^\s+|\r?\n|\s+$)",
+                "",
+                "".join(param_node.get_code() for param_node in param_nodes.values()),
+            )
+            .rstrip(",")
+            .strip()
+        )
 
         yield markdown_heading(
-            "`{prefix}{title}({params})`\n".format(
+            "`{prefix}{title}({params})`".format(
                 prefix=prefix,
                 title=func_node.name.value,
-                params="".join(
-                    param_node.get_code() for param_node in param_nodes.values()
-                ).strip(),
+                params=param_string,
             ),
             level=context.depth,
         )
@@ -187,29 +199,38 @@ class ParsoGenerator(BaseGenerator):
         if doc:
             yield markdown_paragraph(doc.short_description)
 
-        if param_nodes:
+        if param_nodes or param_docs:
             yield markdown_heading("Arguments", level=context.depth + 1)
             with markdown_block() as block:
                 block.writeln("| Name | Type | Description | Default |")
                 block.writeln("| ---- | ---- | ----------- | ------- |")
-                for param_name, param_node in param_nodes.items():
+
+                seen: Set[str] = set()
+                for param_name in chain(param_docs, param_nodes):
+                    if param_name in seen:
+                        continue
+
+                    seen.add(param_name)
+                    param_node = param_nodes.get(param_name)
                     param_doc = param_docs.get(param_name)
+
                     block.writeln(
                         "| {name} | {type} | {description} | {default} |".format(
                             name=param_name,
                             type=(
                                 getattr(param_doc, "type_name", None)
-                                or get_code(param_node.annotation)
+                                or get_code(getattr(param_node, "annotation", None))
                                 or "-"
                             ),
                             description=getattr(param_doc, "description", "-"),
                             default=(
                                 getattr(param_doc, "default", None)
-                                or get_code(param_node.default)
+                                or get_code(getattr(param_node, "default", None))
                                 or "-"
                             ),
                         )
                     )
+
                 yield block.build()
 
         if not is_constructor:
