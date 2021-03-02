@@ -27,7 +27,7 @@ with open(resolve("requirements/extra.txt")) as f:
 
 setup(
     name="mkdocs-yaarg-plugin",
-    version="0.0.1a3",
+    version="0.0.1a4",
     url="https://github.com/g6123/mkdocs-yaarg-plugin",
     license="MIT",
     description="Yet Another API Reference Generator plugin for MKDocs.",
