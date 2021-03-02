@@ -12,16 +12,8 @@ def resolve(filename):
 with open(resolve("README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
-with open(resolve("yaarg/__init__.py")) as f:
-    version_pattern = re.compile(r'__version__\s*=\s*[\'"](.+?)[\'"]')
-    version_match = re.search(version_pattern, f.read())
-    assert version_match is not None
-    version = version_match.group(1)
-
-
 with open(resolve("requirements/base.txt")) as f:
     install_requires = list(map(str.strip, f.readlines()))
-
 
 with open(resolve("requirements/extra.txt")) as f:
     extra_pattern = re.compile(r"^(.+?)\s*#\s*extra\s*=\s*(.+?)$")
@@ -35,7 +27,7 @@ with open(resolve("requirements/extra.txt")) as f:
 
 setup(
     name="mkdocs-yaarg-plugin",
-    version=version,
+    version="0.0.1a1",
     url="https://github.com/g6123/mkdocs-yaarg-plugin",
     license="MIT",
     description="Yet Another API Reference Generator plugin for MKDocs.",
