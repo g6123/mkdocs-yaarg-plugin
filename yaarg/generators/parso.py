@@ -134,14 +134,10 @@ class ParsoGenerator(BaseGenerator):
                 )
 
     def _generate_func_doc(self, func_node: Function, context: ParsoGeneratorContext):
-        if isnode(context.parent, Class):
-            is_undocumented = func_node.get_doc_node() is None
-            is_private = re.match(r"^_[^_]+?$", func_node.name.value)
-            is_static = any(
-                re.search("(staticmethod|classmethod)", decorator_node.get_code())
-                for decorator_node in func_node.get_decorators()
-            )
+        is_undocumented = func_node.get_doc_node() is None
+        is_private = re.match(r"^_[^_]+?$", func_node.name.value)
 
+        if isnode(context.parent, Class):
             if not context.options["methods"]["undocumented"]:
                 if is_undocumented:
                     return
@@ -150,8 +146,15 @@ class ParsoGenerator(BaseGenerator):
                 if is_private:
                     return
 
+            is_constructor = func_node.name.value == "__init__"
+            is_static = any(
+                re.search("(staticmethod|classmethod)", decorator_node.get_code())
+                for decorator_node in func_node.get_decorators()
+            )
             prefix = context.parent_name + ("." if is_static else "#")
         else:
+            is_constructor = False
+            is_static = True
             prefix = ""
 
         param_nodes: OrderedDict[str, Param] = OrderedDict(
@@ -209,26 +212,27 @@ class ParsoGenerator(BaseGenerator):
                     )
                 yield block.build()
 
-        yield markdown_heading("Returns", level=context.depth + 1)
-        with markdown_block() as block:
-            if doc:
-                returns_doc = doc.returns
-            else:
-                returns_doc = None
+        if not is_constructor:
+            yield markdown_heading("Returns", level=context.depth + 1)
+            with markdown_block() as block:
+                if doc:
+                    returns_doc = doc.returns
+                else:
+                    returns_doc = None
 
-            block.writeln("| Type | Description |")
-            block.writeln("| ---- | ----------- |")
-            block.writeln(
-                "| {type} | {description} |".format(
-                    type=(
-                        getattr(returns_doc, "type_name", None)
-                        or get_code(func_node.annotation)
-                        or "-"
-                    ),
-                    description=getattr(returns_doc, "description", None) or "-",
+                block.writeln("| Type | Description |")
+                block.writeln("| ---- | ----------- |")
+                block.writeln(
+                    "| {type} | {description} |".format(
+                        type=(
+                            getattr(returns_doc, "type_name", None)
+                            or get_code(func_node.annotation)
+                            or "-"
+                        ),
+                        description=getattr(returns_doc, "description", None) or "-",
+                    )
                 )
-            )
-            yield block.build()
+                yield block.build()
 
         if doc and doc.long_description:
             yield markdown_heading("Details", level=context.depth + 1)
