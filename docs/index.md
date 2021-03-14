@@ -9,8 +9,9 @@ For full documentation visit [mkdocs.org](https://www.mkdocs.org).
 * `mkdocs build` - Build the documentation site.
 * `mkdocs -h` - Print help message and exit.
 
-::: /Users/yuseong.cho/Development/mkdocs-yaarg-plugin/yaarg/generators/base.py
-    depth: 2
+::: yaarg/generators/base.py
+    methods:
+        undocumented: false
 
 ## Project layout
 

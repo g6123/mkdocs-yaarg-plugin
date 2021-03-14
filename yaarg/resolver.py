@@ -31,8 +31,8 @@ class Resolver:
 
     def __init__(self, rules: Sequence[ResolverRule], mkdocs: MKDocsConfig):
         self.rules = rules
-        self.generator_caches = {}
         self.mkdocs = mkdocs
+        self.generator_caches = {}
 
     def resolve(self, filepath: Path, options: dict) -> Tuple[BaseGenerator, dict]:
         options = options.copy()
@@ -40,22 +40,25 @@ class Resolver:
 
         if generator_path is None:
             for rule in self.rules:
-                if self.match(filepath, rule, options):
+                if self.match(rule, filepath, options):
                     generator_path = rule.generator
                     options.update(rule.options)
                     break
             else:
                 raise ResolverError(filepath)
 
-        if generator_path not in self.generator_caches:
+        if generator_path in self.generator_caches:
+            generator = self.generator_caches[generator_path]
+        else:
             generator_cls: Type[BaseGenerator] = import_string(generator_path)
-            self.generator_caches[generator_path] = generator_cls(self.mkdocs)
+            generator = self.generator_caches[generator_path] = generator_cls(
+                self.mkdocs
+            )
 
-        generator = self.generator_caches[generator_path]
         options = generator.validate_options(options)
         return generator, options
 
-    def match(self, filepath: Path, rule: ResolverRule, options: dict) -> bool:
+    def match(self, rule: ResolverRule, filepath: Path, options: dict) -> bool:
         return filepath.match(rule.glob)
 
 
