@@ -1,3 +1,5 @@
 mkdocs>=1,<2
 schema>=0.7,<0.8
 pyyaml>=5.4,<5.5
+parso>=0.8,<0.9
+docstring-parser>=0.7,<0.8

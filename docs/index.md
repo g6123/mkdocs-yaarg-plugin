@@ -7,7 +7,7 @@
 Install package from PyPI,
 
 ```text
-pip install mkdocs-yaarg-plugin[parso]
+pip install mkdocs-yaarg-plugin
 ```
 
 then add it to `mkdocs.yml`:
