@@ -25,7 +25,7 @@ plugins:
 ::: some/filepath/to/module.py
 ```
 
-~See [documentation]() for other options and details.~ WIP
+See [documentation](https://g6123.github.io/mkdocs-yaarg-plugin/) for other options and details.
 
 ## Why
 
