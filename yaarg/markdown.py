@@ -1,16 +1,18 @@
 import re
 from pathlib import Path
-from typing import List
+from typing import MutableSequence
+from xml.etree.ElementTree import Element
 
 import yaml
+from markdown.blockparser import BlockParser
+from markdown.blockprocessors import BlockProcessor
 from markdown.core import Markdown
 from markdown.extensions import Extension
-from markdown.preprocessors import Preprocessor
 from mkdocs.config.base import Config as MKDocsConfig
 
 from yaarg.resolver import Resolver
 
-PRIORITY = 26  # Before FencedBlockPreprocessor
+PRIORITY = 75  # Right before markdown.blockprocessors.HashHeaderProcessor
 NAME = "yaarg"
 
 
@@ -21,53 +23,32 @@ class YaargExtension(Extension):
         self.mkdocs = mkdocs
 
     def extendMarkdown(self, md: Markdown):
-        preprocessor = YaargPreprocessor(md)
-        preprocessor.resolver = self.resolver
-        preprocessor.mkdocs = self.mkdocs
-        md.preprocessors.register(preprocessor, NAME, priority=PRIORITY)
+        md.parser.blockprocessors.register(
+            YaargBlockProcessor(md.parser, self.resolver, self.mkdocs),
+            NAME,
+            priority=PRIORITY,
+        )
 
 
-class YaargPreprocessor(Preprocessor):
-    EOF = "\0"
+class YaargBlockProcessor(BlockProcessor):
+    PATTERN = re.compile(r"^:::\s+(.+?)$", re.MULTILINE)
 
+    parser: BlockParser
     resolver: Resolver
     mkdocs: MKDocsConfig
-    open_pattern = re.compile(r"^:::\s+(.+?)$")
-    close_pattern = re.compile(r"^$")
 
-    def run(self, lines: List[str]):
-        cursor = 0
-        marker = -1
+    def __init__(self, parser: BlockParser, resolver: Resolver, mkdocs: MKDocsConfig):
+        super().__init__(parser)
+        self.resolver = resolver
+        self.mkdocs = mkdocs
 
-        while cursor <= len(lines):
-            try:
-                line = lines[cursor]
-            except IndexError:
-                line = ""
+    def test(self, parent: Element, block: str):
+        return re.search(self.PATTERN, block) is not None
 
-            if marker >= 0:
-                if re.match(self.close_pattern, line):
-                    buffer = lines[marker:cursor]
-                    lines = lines[:marker] + lines[cursor:]
-                    cursor -= len(buffer)
-
-                    buffer = self._process(buffer)
-                    lines[marker + 1 : 0] = buffer
-                    cursor += len(buffer)
-
-                    marker = -1
-            else:
-                if re.match(self.open_pattern, line):
-                    marker = cursor
-
-            cursor += 1
-
-        return lines
-
-    def _process(self, lines: List[str]) -> List[str]:
-        match = re.match(self.open_pattern, lines[0])
-        if match is None:
-            return []
+    def run(self, parent: Element, blocks: MutableSequence[str]):
+        source_block = blocks.pop(0)
+        match = re.search(self.PATTERN, source_block)
+        assert match is not None
 
         target = match.group(1).split(":", 2)
         if len(target) < 2:
@@ -75,13 +56,19 @@ class YaargPreprocessor(Preprocessor):
         else:
             filename, symbol = target
 
-        options = yaml.safe_load("\n".join(lines[1:]).strip())
-        if not options:
-            options = {}
+        raw_options = yaml.safe_load(source_block[match.end(1) :].strip())
+        if not raw_options:
+            raw_options = {}
 
         filepath = Path(self.mkdocs["config_file_path"]).parent / Path(filename)
-        generator, options = self.resolver.resolve(filepath, options)
 
-        blocks = generator.generate(filepath, symbol, options)
-        chunk = "\n\n".join(blocks)
-        return chunk.splitlines()
+        generator = self.resolver.resolve(
+            filepath,
+            generator=raw_options.get("generator"),
+            options=raw_options.get("resolver"),
+        )
+        options = generator.validate_options(raw_options)
+
+        blocks[0:0] = [
+            block.build() for block in generator.generate(filepath, symbol, options)
+        ]

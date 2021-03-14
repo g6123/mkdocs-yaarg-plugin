@@ -1,21 +1,28 @@
-# Welcome to MkDocs
+# mkdocs-yaarg-plugin
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+**Y**et **A**nother **A**PI **R**eference **G**enerator plugin for [MKDocs](https://www.mkdocs.org/).
 
-## Commands
+## Installation
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+Install package from PyPI,
 
-::: yaarg/generators/base.py
-    methods:
-        undocumented: false
+```text
+pip install mkdocs-yaarg-plugin[parso]
+```
 
-## Project layout
+then add it to `mkdocs.yml`:
 
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+```yaml
+plugins:
+  - yaarg
+```
+
+## Usage
+
+```markdown
+# API Reference
+
+::: some/filepath/to/module.py
+```
+
+WIP

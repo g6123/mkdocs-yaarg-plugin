@@ -36,9 +36,6 @@ As a Python docstring documentation generator:
 `yaarg`'s default Python generator does not depend on any runtime data.
 Executing Python code to build a documentation is simply unnecessary, slow and potentially dangerous.
 
-Instead, `yaarg` directly reads and parses Python code to find docstrings and type annotations.
-It is powered by [Parso](https://parso.readthedocs.io/en/latest/), which has been battle-tested by VSCode.
-
 As a general API reference generator:
 
 - Language agnostic

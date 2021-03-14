@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Sequence, Tuple, Type
+from typing import Dict, Optional, Sequence, Type
 
 from mkdocs.config import Config as MKDocsConfig
 
@@ -34,38 +34,39 @@ class Resolver:
         self.mkdocs = mkdocs
         self.generator_caches = {}
 
-    def resolve(self, filepath: Path, options: dict) -> Tuple[BaseGenerator, dict]:
-        options = options.copy()
-        generator_path = options.pop("generator", None)
+    def resolve(
+        self,
+        filepath: Path,
+        generator: Optional[str] = None,
+        options: Optional[dict] = None,
+    ) -> BaseGenerator:
+        if options is None:
+            options = {}
+        else:
+            options = options.copy()
 
-        if generator_path is None:
+        if generator is None:
             for rule in self.rules:
                 if self.match(rule, filepath, options):
-                    generator_path = rule.generator
+                    generator = rule.generator
                     options.update(rule.options)
                     break
             else:
                 raise ResolverError(filepath)
 
-        if generator_path in self.generator_caches:
-            generator = self.generator_caches[generator_path]
-        else:
-            generator_cls: Type[BaseGenerator] = import_string(generator_path)
-            generator = self.generator_caches[generator_path] = generator_cls(
-                self.mkdocs
-            )
+        if generator not in self.generator_caches:
+            generator_cls: Type[BaseGenerator] = self.load(generator)
+            self.generator_caches[generator] = generator_cls(self.mkdocs)
 
-        options = generator.validate_options(options)
-        return generator, options
+        return self.generator_caches[generator]
+
+    def load(self, generator_path: str):
+        module_name, obj_name = generator_path.rsplit(":", 1)
+        module = import_module(module_name)
+        try:
+            return getattr(module, obj_name)
+        except AttributeError:
+            raise ImportError(generator_path)
 
     def match(self, rule: ResolverRule, filepath: Path, options: dict) -> bool:
         return filepath.match(rule.glob)
-
-
-def import_string(path):
-    module_name, obj_name = path.rsplit(":", 1)
-    module = import_module(module_name)
-    try:
-        return getattr(module, obj_name)
-    except AttributeError:
-        raise ImportError(path)

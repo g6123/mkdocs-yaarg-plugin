@@ -1,3 +1,11 @@
-site_name: My Docs
+site_name: mkdocs-yaarg-plugin
+theme: readthedocs
+nav:
+  - index.md
+  - api/generators.md
 plugins:
   - yaarg
+  - search
+extra_css:
+  - https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css
+  - assets/extra.css

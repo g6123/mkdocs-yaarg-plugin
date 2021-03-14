@@ -105,10 +105,7 @@ class ParsoGenerator(BaseGenerator):
             module_name, _ = os.path.splitext(module_path[-1])
             module_path = module_path[:-1] + (module_name,)
 
-        yield markdown_heading(
-            "`{title}`".format(title=".".join(module_path)),
-            level=context.depth,
-        )
+        yield markdown_heading(".".join(module_path), level=context.depth)
 
         doc_node = cast(Optional[String], module_node.get_doc_node())
         if doc_node:
@@ -123,7 +120,7 @@ class ParsoGenerator(BaseGenerator):
                 )
 
     def _generate_class_doc(self, class_node: Class, context: ParsoGeneratorContext):
-        yield markdown_heading(f"`{class_node.name.value}`", level=context.depth)
+        yield markdown_heading(class_node.name.value, level=context.depth)
 
         doc_node = cast(Optional[String], class_node.get_doc_node())
         if doc_node:
@@ -199,11 +196,11 @@ class ParsoGenerator(BaseGenerator):
         if decorator_nodes:
             yield markdown_heading("Decorators", level=context.depth + 1)
             with markdown_block() as block:
-                block.writeln("```python")
+                block.write('<pre><code class="language-python">')
                 for decorator_node in decorator_nodes:
                     block.writeln(decorator_node.get_code(include_prefix=False).strip())
-                block.writeln("```")
-                yield block.build()
+                block.write("</code></pre>")
+                yield block
 
         if param_nodes or param_docs:
             yield markdown_heading("Arguments", level=context.depth + 1)
@@ -237,7 +234,7 @@ class ParsoGenerator(BaseGenerator):
                         )
                     )
 
-                yield block.build()
+                yield block
 
         if not is_constructor:
             yield markdown_heading("Returns", level=context.depth + 1)
@@ -259,7 +256,7 @@ class ParsoGenerator(BaseGenerator):
                         description=getattr(returns_doc, "description", None) or "-",
                     )
                 )
-                yield block.build()
+                yield block
 
         if doc and doc.long_description:
             yield markdown_heading("Details", level=context.depth + 1)

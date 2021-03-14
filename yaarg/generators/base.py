@@ -4,7 +4,7 @@ Provides base generator implementation and utilities to build generators.
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Optional, cast
+from typing import Iterable, Optional
 
 from mkdocs.config import Config as MKDocsConfig
 from schema import Schema
@@ -12,7 +12,7 @@ from schema import Schema
 
 class BaseGenerator(ABC):
     """
-    Base class for the all yaarg generators.
+    Base class for yaarg generators.
     """
 
     options_schema = Schema({})
@@ -36,9 +36,9 @@ class BaseGenerator(ABC):
     @abstractmethod
     def generate(
         self, filepath: Path, symbol: Optional[str], options: dict
-    ) -> Iterable[str]:
+    ) -> Iterable["markdown_block"]:
         """
-        Reads the source code and generates markdown lines.
+        Reads the source code and generates markdown blocks.
 
         Args:
             filepath (Path): Path to the source code
@@ -46,36 +46,14 @@ class BaseGenerator(ABC):
             options (dict): Generator options. See also `validate_options()`.
 
         Returns:
-            Iterable[str]: Markdown lines
+            Iterable["markdown_block"]: Markdown blocks
         """
         pass
 
 
-def markdown_heading(text: Optional[str], level: int = 1) -> str:
-    """
-    Creates markdown heading block.
-    """
-    if text is None:
-        return ""
-
-    text = ("#" * level) + " " + text
-    text = text.strip()
-    return text
-
-
-def markdown_paragraph(text: Optional[str]) -> str:
-    """
-    Creates markdown paragraph block(s).
-    """
-    if text is None:
-        return ""
-
-    return text.strip()
-
-
 class markdown_block:
     """
-    Context manager to create an arbitrary markdown block.
+    Represents markdown blocks.
     """
 
     def __init__(self):
@@ -100,7 +78,7 @@ class markdown_block:
         self.write(line)
         self.lines.append("")
 
-    def build(self) -> str:
+    def build(self):
         """
         Builds final markdown block.
 
@@ -114,3 +92,31 @@ class markdown_block:
 
     def __exit__(self, exc_type, exc_value, traceback):
         pass
+
+
+class markdown_heading(markdown_block):
+    """
+    Represents markdown heading block.
+    """
+
+    def __init__(self, text: Optional[str], level: int = 1):
+        super().__init__()
+
+        if text is None:
+            text = ""
+
+        self.writeln(("#" * level) + " " + text)
+
+
+class markdown_paragraph(markdown_block):
+    """
+    Represents markdown paragraph block.
+    """
+
+    def __init__(self, text: Optional[str]):
+        super().__init__()
+
+        if text is None:
+            text = ""
+
+        self.writeln(text)
